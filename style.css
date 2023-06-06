@@ -1,0 +1,13 @@
+canvas {
+    border: 5px solid purple;
+}
+
+.test {
+    background-color: aqua;
+    width: 100px;
+    height: 100px;
+}
+
+body {
+    margin: 0px;
+}
