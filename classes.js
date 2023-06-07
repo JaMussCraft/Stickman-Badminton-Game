@@ -1,130 +1,199 @@
 class Player {
-    static width = 50
-    static height = 100
-  
-    constructor({ x, y, veloX, veloY, imageSrc }) {
-      this.x = x
-      this.y = y
-      this.width = Player.width
-      this.height = Player.height
-      this.veloX = veloX
-      this.veloY = veloY
-      this.image = new Image()
-      this.image.src = imageSrc
-      this.racket = new Racket({
-        player: this,
-        offSet: { x: 15, y: -this.height * 0.7, angle: 50 },
-      })
+  static width = 50
+  static height = 100
+
+  constructor({ x, y, veloX, veloY, imageSrc, side }) {
+    this.x = x
+    this.y = y
+    this.width = Player.width
+    this.height = Player.height
+    this.veloX = veloX
+    this.veloY = veloY
+    this.image = new Image()
+    this.image.src = imageSrc
+    this.side = side
+    this.racket = new Racket({
+      player: this,
+      offSet: { x: 15, y: -this.height * 0.7, angle: 50 },
+      degree: {
+        start: this.side === "right" ? 50 : -50,
+        end: this.side === "right" ? -100 : 100,
+      },
+    })
+  }
+
+  draw() {
+    // draw player
+    c.fillStyle = "red"
+    c.fillRect(this.x, this.y, this.width, this.height)
+
+    // draw racket
+    this.racket.draw()
+  }
+
+  update() {
+    // gravity
+    if (this.y + this.height + this.veloY >= canvas.height) {
+      this.veloY = 0
+      this.y = canvas.height - this.height
+    } else {
+      this.veloY += gravity
     }
-  
-    draw() {
-      // draw player
-      c.fillStyle = "red"
-      c.fillRect(this.x, this.y, this.width, this.height)
-  
-      // draw racket
-      this.racket.draw()
-    }
-  
-    update() {
-      // gravity
-      if (this.y + this.height + this.veloY >= canvas.height) {
-        this.veloY = 0
-        this.y = canvas.height - this.height
-      } else {
-        this.veloY += gravity
+
+    // update racket
+    this.racket.update()
+
+    this.y += this.veloY
+    this.x += this.veloX
+  }
+}
+
+class Racket {
+  constructor({ player, offSet, degree }) {
+    this.player = player
+    this.width = 20
+    this.height = 100
+    this.offSet = offSet
+    this.x = this.player.x + this.offSet.x
+    this.y = this.player.y + this.offSet.y
+    this.degree = degree.start
+    this.startDegree = degree.start
+    this.endDegree = degree.end
+    this.swingForth = false
+    this.swingBack = false
+
+    this.centerX =
+      this.x +
+      this.width / 2 +
+      Math.sin((this.degree * Math.PI) / 180) * (this.height / 2)
+    this.centerY =
+      this.y +
+      this.height -
+      Math.cos((this.degree * Math.PI) / 180) * (this.height / 2)
+  }
+
+  draw() {
+    c.save()
+    c.translate(this.x + this.width / 2, this.y + this.height)
+
+    // Rotate the canvas by degree
+    const angle = (this.degree * Math.PI) / 180
+    c.rotate(angle)
+
+    c.fillStyle = "green"
+    c.translate(-this.width / 2, -this.height)
+    c.fillRect(0, 0, this.width, this.height)
+
+    c.restore()
+  }
+
+  update() {
+    // keep x and y in sync with player's position
+    this.x = this.player.x + this.offSet.x
+    this.y = this.player.y + this.offSet.y
+
+    // update center x and y
+    this.centerX =
+      this.x +
+      this.width / 2 +
+      Math.sin((this.degree * Math.PI) / 180) * (this.height / 2)
+    this.centerY =
+      this.y +
+      this.height -
+      Math.cos((this.degree * Math.PI) / 180) * (this.height / 2)
+
+    if (this.player.side === "right") {
+      if (this.swingForth) {
+        if (this.degree + racketSwingSpeed > this.endDegree)
+          this.degree -= racketSwingSpeed
+        else {
+          this.degree = this.endDegree
+          this.swingForth = false
+          this.swingBack = true
+        }
+      } else if (this.swingBack) {
+        if (this.degree + racketSwingSpeed < this.startDegree) {
+          this.degree += racketSwingSpeed
+        } else {
+          this.degree = this.startDegree
+          this.swingBack = false
+        }
       }
-  
-      // update racket
-      this.racket.update()
-  
-      this.y += this.veloY
-      this.x += this.veloX
+    } else {
+      if (this.swingForth) {
+        if (this.degree + racketSwingSpeed < this.endDegree)
+          this.degree += racketSwingSpeed
+        else {
+          this.degree = this.endDegree
+          this.swingForth = false
+          this.swingBack = true
+        }
+      } else if (this.swingBack) {
+        if (this.degree - racketSwingSpeed > this.startDegree) {
+          this.degree -= racketSwingSpeed
+        } else {
+          this.degree = this.startDegree
+          this.swingBack = false
+        }
+      }
     }
   }
-  
-  class Racket {
-    static width = 20
-    static height = 100
-    constructor({ player, offSet }) {
-      this.player = player
-      this.width = Racket.width
-      this.height = Racket.height
-      this.offSet = offSet
-      this.x = this.player.x + this.offSet.x
-      this.y = this.player.y + this.offSet.y
-      this.degree = 0
-      this.swingForth = false
-      this.swingBack = false
-    }
-  
-    draw() {
-      c.save()
-      c.translate(this.x + this.width / 2, this.y + this.height)
-  
-      // Rotate the canvas by degree
-      const angle = (this.degree * Math.PI) / 180
-      c.rotate(angle)
-  
-      c.fillStyle = "green"
-      c.translate(-this.width / 2, -this.height)
-      c.fillRect(0, 0, this.width, this.height)
-  
-      c.restore()
-    }
-  
-    update() {
-      // keep x and y in sync with player's position
-      this.x = this.player.x + this.offSet.x
-      this.y = this.player.y + this.offSet.y
-  
-      if (this.swingForth && this.degree > -100 && gameFrame % 100) {
-        this.degree -= 1
-      } else if (this.swingForth && this.degree <= -100) {
-        this.swingForth = false
-        this.swingBack = true
-      } 
-  
-      console.log(this.swingForth, this.swingBack)
-  
-      if (this.swingBack && this.degree < 0 && gameFrame % 100) {
-        this.degree += 1
-      } else if (this.swingBack && this.degree >= 0) {
-        this.swingBack = false
-      }
-    }
-  
-    // swingForth() {
-    //   if (this.degree > -100) {
-    //     this.swingBack()
-    //   }
-  
-    //   if (gameFrame % 100) {
-    //     this.degree -= 1
-    //     this.swingForth()
-    //   }
-  
-    //   // if (!this.swingForth && !this.swingBack) {
-    //   //   this.swingForth = true
-  
-    //   //   setTimeout(() => {
-    //   //     this.swingForth = false
-    //   //     this.swingBack = true
-    //   //     setTimeout(() => {
-    //   //       this.swingBack = false
-  
-    //   //     }, 500);
-    //   //   }, 500)
-    //   // }
-    // }
-  
-    // swingBack() {
-    //   if (this.degree < 100) {
-    //     this.swingBack()
-    //   }
-  
-    //   if (gameFrame % 100) {
-    //     this.degree += 1
-    //   }
-    // }
+}
+
+class Birdie {
+  constructor({ x, y, veloX, veloY }) {
+    this.x = x
+    this.y = y
+    this.veloX = veloX
+    this.veloY = veloY
+    this.degree = 0
+    this.radius = 25
   }
+
+  draw() {
+    c.beginPath()
+    c.arc(this.x, this.y, this.radius, 0, 2 * Math.PI)
+
+    c.fillStyle = "green"
+    c.fill()
+    c.closePath()
+
+    c.save()
+    c.translate(this.x + this.width / 2, this.y + this.height)
+
+    // // Rotate the canvas by degree
+    // const angle = (this.degree * Math.PI) / 180
+    // c.rotate(angle)
+
+    // c.fillStyle = "green"
+    // c.translate(-this.width / 2, -this.height)
+    // c.fillRect(0, 0, this.width, this.height)
+
+    // c.restore()
+  }
+
+  update() {
+    this.x += this.veloX
+    this.y += this.veloY
+
+    // gravity
+    if (this.y + this.radius + this.veloY >= canvas.height) {
+      this.veloY = 0
+      this.y = canvas.height - this.radius
+    } else {
+      this.veloY += gravity
+    }
+
+    // x bounds
+    if (this.x - this.radius + this.veloX <= 0) {
+      this.x = this.radius
+      this.veloX = 10
+    } else if (this.x + this.radius + this.veloX >= canvas.width) {
+      this.x = canvas.width - this.radius
+      this.veloX = -10
+    }
+
+    // air friction
+    if (this.veloX != 0) this.veloX *= airFriction
+  }
+}
