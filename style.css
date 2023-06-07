@@ -2,10 +2,12 @@ canvas {
     border: 5px solid purple;
 }
 
-.test {
+.buttonDiv {
+    position: absolute;
     background-color: aqua;
-    width: 100px;
-    height: 100px;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
 }
 
 body {

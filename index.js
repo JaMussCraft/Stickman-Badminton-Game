@@ -8,15 +8,21 @@ gsap.to("#hello", { duration: 1, width: 200 })
 
 // Constants
 let gameFrame = 0
+// Possible game states: 'Game Over', 'Mid Game', 'Left Player Serving',
+// 'Right Player Serving', 'Start Screen'
+let gameState = "Start Screen"
+let lastWon = null
 
-const gravity = 0.2
+const gravity = 0.4
 const jumpSpeed = 8
-const playerSpeed = 1
+const playerSpeed = 10
 
 const racketSwingSpeed = 10
 const racketStartDegree = 50
 const racketEndDegree = -100
 
+const birdieXSpeed = 10
+const birdieYSpeed = 20
 const airFriction = 0.97
 
 const keys = {
@@ -30,7 +36,7 @@ const keys = {
   right: { pressed: false },
 }
 
-let lastKey = null
+let lastKey = { leftPlayer: null, rightPlayer: null }
 
 const rightPlayer = new Player({
   x: 500,
@@ -50,7 +56,7 @@ const leftPlayer = new Player({
   side: "left",
 })
 
-const birdie = new Birdie({ x: 300, y: 400, veloX: 0, veloY: 0 })
+const birdie = new Birdie({ x: 500, y: 400, veloX: 0, veloY: 0 })
 let degrees = 0
 
 // Animation Loop
@@ -59,23 +65,6 @@ function animate() {
   animationId = requestAnimationFrame(animate)
 
   c.clearRect(0, 0, canvas.width, canvas.height)
-
-
-  // c.save()
-  // c.translate(125, 150)
-
-  // // Rotate the canvas by degree
-  // // degrees += 1
-  // const angle = (90 * Math.PI) / 180
-  // c.rotate(angle)
-
-  // c.translate(-25, -50)
-  // c.fillStyle = "green"
-  // c.fillRect(0, 0, 50, 100)
-
-  // c.restore()
-
-  //
 
   // update and draw rightPlayer
   rightPlayer.update()
@@ -91,11 +80,15 @@ function animate() {
   }
 
   // rightPlayer x movement
-  if (keys.left.pressed && lastKey === "left") {
+  if (keys.left.pressed && lastKey.rightPlayer === "left") {
     rightPlayer.x -= playerSpeed
-  } else if (keys.right.pressed && lastKey === "right") {
+  } else if (keys.right.pressed && lastKey.rightPlayer === "right") {
     rightPlayer.x += playerSpeed
   }
+
+  // rightPlayer swing
+  if (keys.down.pressed && !rightPlayer.racket.swingBack)
+    rightPlayer.racket.swingForth = true
 
   // leftPlayer y movement
   if (keys.w.pressed && leftPlayer.veloY === 0) {
@@ -103,38 +96,88 @@ function animate() {
   }
 
   // leftPlayer x movement
-  if (keys.a.pressed && lastKey === "a") {
+  if (keys.a.pressed && lastKey.leftPlayer === "a") {
     leftPlayer.x -= playerSpeed
-  } else if (keys.d.pressed && lastKey === "d") {
+  } else if (keys.d.pressed && lastKey.leftPlayer === "d") {
     leftPlayer.x += playerSpeed
   }
 
+  // leftPlayer swing
+  if (keys.s.pressed && !leftPlayer.racket.swingBack)
+    leftPlayer.racket.swingForth = true
+
   // update and draw birdie
-  // birdie.update()
+  birdie.update()
   birdie.draw()
 
   // collision detection betweem birdie and right player
   if (
-    isCircleRectCollision(birdie, rightPlayer.racket) 
-    // isCircleRectCollision(birdie, rightPlayer.racket) &&
-    // rightPlayer.racket.swingForth
+    isBirdieRacketCollision(
+      birdie,
+      rightPlayer.racket.hitBox,
+      rightPlayer.racket.falseHitBox
+    ) &&
+    rightPlayer.racket.swingForth
   ) {
-    console.log('collision')
-    birdie.veloY = -10
-    birdie.veloX = -10
+    console.log("collision")
+    birdie.veloY = -birdieYSpeed
+    birdie.veloX = -birdieXSpeed
   }
 
   // collision detection betweem birdie and left player
   if (
-    isCircleRectCollision(birdie, leftPlayer.racket) &&
+    isBirdieRacketCollision(
+      birdie,
+      leftPlayer.racket.hitBox,
+      leftPlayer.racket.falseHitBox
+    ) &&
     leftPlayer.racket.swingForth
   ) {
-    birdie.veloY = -10
-    birdie.veloX = 10
+    birdie.veloY = -birdieYSpeed
+    birdie.veloX = birdieXSpeed
   }
 
   // update game frame
   gameFrame += 1
+  
+  // state machine
+  if (gameState === 'Start Screen') {
+    
+
+  }
+  else if (gameState === "Mid Game" && birdie.y + birdie.radius === canvas.height) {
+    if (birdie.x < leftPlayer.xRightBound) {
+      console.log("left Player lose")
+    } else {
+      console.log("right player loses")
+    }
+  }
+
+  // c.beginPath()
+  // c.arc(
+  //   leftPlayer.racket.hitBox.x,
+  //   leftPlayer.racket.hitBox.y,
+  //   leftPlayer.racket.hitBox.radius,
+  //   0,
+  //   2 * Math.PI
+  // )
+
+  // c.fillStyle = "blue"
+  // c.fill()
+  // c.closePath()
+
+  // c.beginPath()
+  // c.arc(
+  //   leftPlayer.racket.falseHitBox.x,
+  //   leftPlayer.racket.falseHitBox.y,
+  //   leftPlayer.racket.falseHitBox.radius,
+  //   0,
+  //   2 * Math.PI
+  // )
+
+  // c.fillStyle = "yellow"
+  // c.fill()
+  // c.closePath()
 }
 
 animate()
@@ -146,15 +189,14 @@ addEventListener("keydown", ({ code }) => {
       break
     case "ArrowDown":
       keys.down.pressed = true
-      rightPlayer.racket.swingForth = true
       break
     case "ArrowLeft":
       keys.left.pressed = true
-      lastKey = "left"
+      lastKey.rightPlayer = "left"
       break
     case "ArrowRight":
       keys.right.pressed = true
-      lastKey = "right"
+      lastKey.rightPlayer = "right"
       break
 
     case "KeyW":
@@ -162,16 +204,14 @@ addEventListener("keydown", ({ code }) => {
       break
     case "KeyA":
       keys.a.pressed = true
-      lastKey = "a"
-      console.log(keys.a.pressed)
+      lastKey.leftPlayer = "a"
       break
     case "KeyS":
       keys.s.pressed = true
-      leftPlayer.racket.swingForth = true
       break
     case "KeyD":
       keys.d.pressed = true
-      lastKey = "d"
+      lastKey.leftPlayer = "d"
       break
 
     default:

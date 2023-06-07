@@ -20,6 +20,8 @@ class Player {
         end: this.side === "right" ? -100 : 100,
       },
     })
+    this.xLeftBound = this.side === "left" ? 0 : canvas.width * 0.5
+    this.xRightBound = this.side === "left" ? canvas.width * 0.5 : canvas.width
   }
 
   draw() {
@@ -38,6 +40,15 @@ class Player {
       this.y = canvas.height - this.height
     } else {
       this.veloY += gravity
+    }
+
+    // x boundaries
+    if (this.x + this.veloX <= this.xLeftBound) {
+      this.x = this.xLeftBound
+      this.veloX = 0
+    } else if (this.x + this.width + this.veloX >= this.xRightBound) {
+      this.x = this.xRightBound - this.width
+      this.veloX = 0
     }
 
     // update racket
@@ -61,7 +72,8 @@ class Racket {
     this.endDegree = degree.end
     this.swingForth = false
     this.swingBack = false
-
+    this.bottomX = this.x + this.width / 2
+    this.bottomY = this.y + this.height
     this.centerX =
       this.x +
       this.width / 2 +
@@ -70,6 +82,17 @@ class Racket {
       this.y +
       this.height -
       Math.cos((this.degree * Math.PI) / 180) * (this.height / 2)
+
+    this.hitBox = {
+      x: this.centerX,
+      y: this.centerY,
+      radius: this.height / 2,
+    }
+    this.falseHitBox = {
+      x: this.bottomX,
+      y: this.bottomY,
+      radius: this.height / 4,
+    }
   }
 
   draw() {
@@ -92,16 +115,33 @@ class Racket {
     this.x = this.player.x + this.offSet.x
     this.y = this.player.y + this.offSet.y
 
-    // update center x and y
+    // update center x, center y, bottom x, bottom y,
+    // hitBox, and false hitBox
     this.centerX =
       this.x +
       this.width / 2 +
       Math.sin((this.degree * Math.PI) / 180) * (this.height / 2)
+
     this.centerY =
       this.y +
       this.height -
       Math.cos((this.degree * Math.PI) / 180) * (this.height / 2)
 
+    this.bottomX = this.x + this.width / 2
+    this.bottomY = this.y + this.height
+
+    this.hitBox = {
+      x: this.centerX,
+      y: this.centerY,
+      radius: this.height / 2,
+    }
+    this.falseHitBox = {
+      x: this.bottomX,
+      y: this.bottomY,
+      radius: this.height / 4,
+    }
+
+    // swinging animation
     if (this.player.side === "right") {
       if (this.swingForth) {
         if (this.degree + racketSwingSpeed > this.endDegree)

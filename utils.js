@@ -1,50 +1,65 @@
 function isCircleRectCollision(circle, rectangle) {
   // Unpack circle properties
-  const circleX = circle.x;
-  const circleY = circle.y;
-  const circleRadius = circle.radius;
+  const circleX = circle.x - 10
+  const circleY = circle.y + 20
+  const circleRadius = circle.radius
 
   // Unpack rectangle properties
-  const rectX = rectangle.centerX;
-  const rectY = rectangle.centerY;
-  const rectWidth = rectangle.width;
-  const rectHeight = rectangle.height;
-  const rectRotation = rectangle.degree * Math.PI / 180;
+  const rectX = rectangle.centerX
+  const rectY = rectangle.centerY
+  const rectWidth = rectangle.width
+  const rectHeight = rectangle.height
+  const rectRotation = (rectangle.degree * Math.PI) / 180
   // console.log(rectRotation)
 
   // Rotate circle's center point by negative rotation angle of rectangle
   const rotatedCircleX =
     Math.cos(-rectRotation) * (circleX - rectX) -
     Math.sin(-rectRotation) * (circleY - rectY) +
-    rectX;
+    rectX
   const rotatedCircleY =
     Math.sin(-rectRotation) * (circleX - rectX) +
     Math.cos(-rectRotation) * (circleY - rectY) +
-    rectY;
+    rectY
 
   // Calculate closest point inside the rectangle to the center of the circle
-  let closestX, closestY;
+  let closestX, closestY
 
   if (rotatedCircleX < rectX) {
-    closestX = rectX;
+    closestX = rectX
   } else if (rotatedCircleX > rectX + rectWidth) {
-    closestX = rectX + rectWidth;
+    closestX = rectX + rectWidth
   } else {
-    closestX = rotatedCircleX;
+    closestX = rotatedCircleX
   }
 
   if (rotatedCircleY < rectY) {
-    closestY = rectY;
+    closestY = rectY
   } else if (rotatedCircleY > rectY + rectHeight) {
-    closestY = rectY + rectHeight;
+    closestY = rectY + rectHeight
   } else {
-    closestY = rotatedCircleY;
+    closestY = rotatedCircleY
   }
 
   // Check if the closest point inside the rectangle is inside the circle
-  const distanceX = rotatedCircleX - closestX;
-  const distanceY = rotatedCircleY - closestY;
-  const distanceSquared = distanceX * distanceX + distanceY * distanceY;
+  const distanceX = rotatedCircleX - closestX
+  const distanceY = rotatedCircleY - closestY
+  const distanceSquared = distanceX * distanceX + distanceY * distanceY
 
-  return distanceSquared <= circleRadius * circleRadius;
+  return distanceSquared <= circleRadius * circleRadius
+}
+
+// return true if birdie is in racketHitBox, but not in racketFalseHitBox
+function isBirdieRacketCollision(birdie, racketHitBox, racketFalseHitBox) {
+  return (
+    Math.hypot(birdie.x - racketHitBox.x, birdie.y - racketHitBox.y) <=
+      birdie.radius + racketHitBox.radius &&
+    !(
+      Math.hypot(
+        birdie.x - racketFalseHitBox.x,
+        birdie.y - racketFalseHitBox.y
+      ) <=
+      birdie.radius + racketFalseHitBox.radius
+    )
+  )
 }
