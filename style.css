@@ -1,5 +1,5 @@
 canvas {
-    border: 5px solid purple;
+    border: 2px solid purple;
 }
 
 .buttonDiv {
@@ -12,4 +12,12 @@ canvas {
 
 body {
     margin: 0px;
+}
+
+.font-exo {
+    font-family: 'Exo 2', sans-serif;
+}
+
+.font-yuji {
+    font-family: 'Yuji Hentaigana Akari', cursive;
 }

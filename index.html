@@ -8,18 +8,42 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@1,600&family=Yuji+Hentaigana+Akari&display=swap"
+      rel="stylesheet"
+    />
   </head>
   <body>
     <div class="inline-block relative flex items-center justify-center">
-      <div class="bg-green-500 absolute w-1/4 h-1/4 p-4 text-center">
-        <h1 class="text-3xl font-bold">wanna play?</h1>
-        <div class="place-content-center">
-          <button class="bg-violet-600 rounded-full hover:rounded-lg p-2">Start Game</button>
+      <!-- score -->
+      <div id="scoreDiv" class="bg-black hidden absolute top-0 mt-3 rounded">
+        <h1 class="text-white text-3xl font-yuji p-2">
+          <span id="leftScore">0</span>-<span id="rightScore">0</span>
+        </h1>
+      </div>
+
+      <!-- start screen -->
+      <div
+        id="startScreen"
+        class="bg-green-500 opacity-90 absolute w-1/4 h-1/4 p-4 text-center rounded-md"
+      >
+        <h1 id="startScreenText" class="text-3xl font-exo">Click to Play</h1>
+        <div class="">
+          <button
+            id="startButton"
+            class="bg-violet-600 rounded-full hover:rounded-lg w-40 p-2 mt-3 font-exo"
+          >
+            Start
+          </button>
         </div>
       </div>
       <canvas></canvas>
     </div>
-    
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.5/gsap.min.js"></script>
     <script src="classes.js"></script>
     <script src="utils.js"></script>

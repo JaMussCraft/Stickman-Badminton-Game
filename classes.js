@@ -13,20 +13,26 @@ class Player {
     this.image.src = imageSrc
     this.side = side
     this.racket = new Racket({
+      vertices: [
+        { x: 400, y: 400 },
+        { x: 425, y: 400 },
+        { x: 425, y: 475 },
+        { x: 400, y: 475 },
+      ],
       player: this,
-      offSet: { x: 15, y: -this.height * 0.7, angle: 50 },
+      offSetX: this.side === 'right' ? 0 : -20,
       degree: {
-        start: this.side === "right" ? 50 : -50,
-        end: this.side === "right" ? -100 : 100,
+        start: this.side === 'right' ? 50 : -50,
+        end: this.side === 'right' ? -100 : 100,
       },
     })
-    this.xLeftBound = this.side === "left" ? 0 : canvas.width * 0.5
-    this.xRightBound = this.side === "left" ? canvas.width * 0.5 : canvas.width
+    this.xLeftBound = this.side === 'left' ? 0 : canvas.width * 0.5
+    this.xRightBound = this.side === 'left' ? canvas.width * 0.5 : canvas.width
   }
 
   draw() {
     // draw player
-    c.fillStyle = "red"
+    c.fillStyle = 'red'
     c.fillRect(this.x, this.y, this.width, this.height)
 
     // draw racket
@@ -60,92 +66,81 @@ class Player {
 }
 
 class Racket {
-  constructor({ player, offSet, degree }) {
+  constructor({ vertices, player, offSetX, degree }) {
     this.player = player
+
+    this.vertices = vertices
     this.width = 20
     this.height = 100
-    this.offSet = offSet
-    this.x = this.player.x + this.offSet.x
-    this.y = this.player.y + this.offSet.y
+    this.offSetX = offSetX
+
     this.degree = degree.start
     this.startDegree = degree.start
     this.endDegree = degree.end
+
     this.swingForth = false
     this.swingBack = false
-    this.bottomX = this.x + this.width / 2
-    this.bottomY = this.y + this.height
-    this.centerX =
-      this.x +
-      this.width / 2 +
-      Math.sin((this.degree * Math.PI) / 180) * (this.height / 2)
-    this.centerY =
-      this.y +
-      this.height -
-      Math.cos((this.degree * Math.PI) / 180) * (this.height / 2)
+    this.hitting = false
 
-    this.hitBox = {
-      x: this.centerX,
-      y: this.centerY,
-      radius: this.height / 2,
-    }
-    this.falseHitBox = {
-      x: this.bottomX,
-      y: this.bottomY,
-      radius: this.height / 4,
-    }
+    this.centerX = getCenterX(this.vertices)
+    this.centerY = getCenterY(this.vertices)
+
+    // position at which the racket rotates
+    this.pivotX = this.player.x + this.player.width / 2
+    this.pivotY = this.player.y + this.player.height / 5
   }
 
   draw() {
-    c.save()
-    c.translate(this.x + this.width / 2, this.y + this.height)
+    c.beginPath()
+    c.moveTo(this.vertices[0].x, this.vertices[0].y)
+    c.lineTo(this.vertices[1].x, this.vertices[1].y)
+    c.lineTo(this.vertices[2].x, this.vertices[2].y)
+    c.lineTo(this.vertices[3].x, this.vertices[3].y)
+    c.closePath()
+    c.fillStyle = 'green'
+    c.fill()
 
-    // Rotate the canvas by degree
-    const angle = (this.degree * Math.PI) / 180
-    c.rotate(angle)
+    // c.save()
+    // c.translate(this.x + this.width / 2, this.y + this.height)
 
-    c.fillStyle = "green"
-    c.translate(-this.width / 2, -this.height)
-    c.fillRect(0, 0, this.width, this.height)
+    // // Rotate the canvas by degree
+    // const angle = (this.degree * Math.PI) / 180
+    // c.rotate(angle)
 
-    c.restore()
+    // c.fillStyle = 'green'
+    // c.translate(-this.width / 2, -this.height)
+    // c.fillRect(0, 0, this.width, this.height)
+
+    // c.restore()
   }
 
   update() {
-    // keep x and y in sync with player's position
-    this.x = this.player.x + this.offSet.x
-    this.y = this.player.y + this.offSet.y
+    // update center x y, pivot x y
+    this.centerX = getCenterX(this.vertices)
+    this.centerY = getCenterY(this.vertices)
 
-    // update center x, center y, bottom x, bottom y,
-    // hitBox, and false hitBox
-    this.centerX =
-      this.x +
-      this.width / 2 +
-      Math.sin((this.degree * Math.PI) / 180) * (this.height / 2)
+    this.pivotX = this.player.x + this.player.width / 2 + this.offSetX
+    this.pivotY = this.player.y + this.player.height / 5
 
-    this.centerY =
-      this.y +
-      this.height -
-      Math.cos((this.degree * Math.PI) / 180) * (this.height / 2)
+    // update this.vertices
+    this.vertices = [
+      { x: this.pivotX, y: this.pivotY - this.height },
+      { x: this.pivotX + this.width, y: this.pivotY - this.height },
+      { x: this.pivotX + this.width, y: this.pivotY },
+      { x: this.pivotX, y: this.pivotY },
+    ]
 
-    this.bottomX = this.x + this.width / 2
-    this.bottomY = this.y + this.height
-
-    this.hitBox = {
-      x: this.centerX,
-      y: this.centerY,
-      radius: this.height / 2,
-    }
-    this.falseHitBox = {
-      x: this.bottomX,
-      y: this.bottomY,
-      radius: this.height / 4,
-    }
+    this.vertices = rotatePolygon(
+      this.vertices,
+      this.degree,
+      this.pivotX + this.width / 2,
+      this.pivotY
+    )
 
     // swinging animation
-    if (this.player.side === "right") {
+    if (this.player.side === 'right') {
       if (this.swingForth) {
-        if (this.degree + racketSwingSpeed > this.endDegree)
-          this.degree -= racketSwingSpeed
+        if (this.degree + racketSwingSpeed > this.endDegree) this.degree -= racketSwingSpeed
         else {
           this.degree = this.endDegree
           this.swingForth = false
@@ -161,8 +156,7 @@ class Racket {
       }
     } else {
       if (this.swingForth) {
-        if (this.degree + racketSwingSpeed < this.endDegree)
-          this.degree += racketSwingSpeed
+        if (this.degree + racketSwingSpeed < this.endDegree) this.degree += racketSwingSpeed
         else {
           this.degree = this.endDegree
           this.swingForth = false
@@ -181,59 +175,134 @@ class Racket {
 }
 
 class Birdie {
-  constructor({ x, y, veloX, veloY }) {
-    this.x = x
-    this.y = y
+  constructor({ vertices, veloX, veloY, isServing }) {
+    this.vertices = vertices
+    this.centerX = getCenterX(this.vertices)
+    this.centerY = getCenterY(this.vertices)
     this.veloX = veloX
     this.veloY = veloY
     this.degree = 0
-    this.radius = 25
+    this.isServing = isServing
+    this.bouncing = false
   }
 
   draw() {
     c.beginPath()
-    c.arc(this.x, this.y, this.radius, 0, 2 * Math.PI)
-
-    c.fillStyle = "green"
-    c.fill()
+    c.moveTo(this.vertices[0].x, this.vertices[0].y)
+    c.lineTo(this.vertices[1].x, this.vertices[1].y)
+    c.lineTo(this.vertices[2].x, this.vertices[2].y)
     c.closePath()
-
-    c.save()
-    c.translate(this.x + this.width / 2, this.y + this.height)
-
-    // // Rotate the canvas by degree
-    // const angle = (this.degree * Math.PI) / 180
-    // c.rotate(angle)
-
-    // c.fillStyle = "green"
-    // c.translate(-this.width / 2, -this.height)
-    // c.fillRect(0, 0, this.width, this.height)
-
-    // c.restore()
+    c.fillStyle = 'cyan'
+    c.fill()
   }
 
   update() {
-    this.x += this.veloX
-    this.y += this.veloY
+    // no update if serving
+    if (this.isServing) return
+
+    // veloX and veloY should be applied to centerX and centerY
+    // and all x's and y's in this.vertices
+    this.setCenterX(this.centerX + this.veloX)
+    this.setCenterY(this.centerY + this.veloY)
+
+    const maxY = getMaxY(this.vertices)
+
+    // bounce on landing
+    if (this.veloY != 0 && maxY + this.veloY >= canvas.height) {
+      this.bouncing = true
+      this.veloY *= -bounceFriction
+    }
+    // else {
+    //   this.bouncing = false
+    //   console.log('not bouncing')
+    // }
 
     // gravity
-    if (this.y + this.radius + this.veloY >= canvas.height) {
+    if (maxY + this.veloY >= canvas.height) {
       this.veloY = 0
-      this.y = canvas.height - this.radius
+      this.setCenterY(canvas.height - (maxY - this.centerY))
     } else {
       this.veloY += gravity
     }
 
     // x bounds
-    if (this.x - this.radius + this.veloX <= 0) {
-      this.x = this.radius
-      this.veloX = 10
-    } else if (this.x + this.radius + this.veloX >= canvas.width) {
-      this.x = canvas.width - this.radius
-      this.veloX = -10
+    const minX = getMinX(this.vertices)
+    const maxX = getMaxX(this.vertices)
+    if (minX + this.veloX <= 0) {
+      this.setCenterX(this.centerX - minX)
+      this.veloX *= -1
+    } else if (maxX + this.veloX >= canvas.width) {
+      this.setCenterX(canvas.width - (maxX - this.centerX))
+      this.veloX *= -1
     }
 
     // air friction
     if (this.veloX != 0) this.veloX *= airFriction
+
+    // make birdie completely stop when touching the ground
+    if (this.veloX != 0 && this.veloY == 0) this.veloX = 0
+
+    // set degree based on the direction the birdie is travelling
+    if (this.veloX != 0) {
+      if (this.veloX > 0) {
+        const radian = Math.atan(this.veloY / this.veloX)
+        const degree = (radian * 180) / Math.PI
+        this.setDegree(degree + 90)
+      } else {
+        // this.veloX < 0
+        const radian = Math.atan(this.veloY / this.veloX)
+        const degree = (radian * 180) / Math.PI
+        this.setDegree(degree - 90)
+      }
+    } else {
+      // console.log('veloX is 0')
+      // veloX is 0
+      if (this.veloY > 0 && !this.bouncing) {
+        this.setDegree(180)
+      } else if (this.veloY === 0 && this.bouncing) {
+        if (this.degree < 180) {
+          this.setDegree(101)
+        } else {
+          this.setDegree(264)
+        }
+      } else if (this.veloY < 0) {
+        if (this.degree > 0) {
+          // goal is 101 degrees
+          if (this.degree > 101) this.degree -= 1
+          else this.degree += 1
+        } else {
+          // goal is -101 degrees
+          if (this.degree < -101) this.degree += 1
+          else this.degree -= 1
+        }
+      }
+    }
+  }
+
+  setCenterX(centerX) {
+    const diff = centerX - this.centerX
+    this.centerX += diff
+    this.shiftVertices(diff, 0)
+  }
+
+  setCenterY(centerY) {
+    const diff = centerY - this.centerY
+    this.centerY += diff
+    this.shiftVertices(0, diff)
+  }
+
+  setDegree(goalDegree) {
+    // differences between goal degree and current degree
+    const diff = goalDegree - this.degree
+    this.vertices = rotatePolygon(this.vertices, diff, this.centerX, this.centerY)
+    // set current degree to goal degree
+    this.degree = goalDegree
+  }
+
+  shiftVertices(distX, distY) {
+    for (let i = 0; i < this.vertices.length; i++) {
+      this.vertices[i].x += distX
+      this.vertices[i].y += distY
+    }
   }
 }
