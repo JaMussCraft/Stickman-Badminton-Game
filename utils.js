@@ -61,18 +61,6 @@ function isBirdieRacketCollision(birdie, racketHitBox, racketFalseHitBox) {
   )
 }
 
-function randomPlayerServe() {
-  // randomly pick left or right player to serve
-  if (Math.random() > 0.5) {
-    gameState = 'Left Player Serving'
-  } else {
-    gameState = 'Right Player Serving'
-  }
-
-  // set birdie into serving mode
-  birdie.isServing = true
-}
-
 function resetPlayer() {
   rightPlayer.x = canvas.width - 100 + rightPlayer.width
   rightPlayer.y = canvas.height - rightPlayer.height
@@ -230,4 +218,39 @@ function getMinX(vertices) {
     minX = vertices[i].x < minX ? vertices[i].x : minX
   }
   return minX
+}
+
+function setUpLeftServe() {
+  // shrink left player right bound
+  leftPlayer.xRightBound = canvas.width / 4
+
+  // change racket into serving position
+  leftPlayer.racket.degree = leftPlayer.racket.serveStartDegree
+  leftPlayer.racket.isServing = true
+
+  // change birdie into serving mode
+  birdie.isServing = true
+}
+
+function setUpRightServe() {
+  // shrink left player right bound
+  rightPlayer.xLeftBound = canvas.width * 3 / 4
+
+  // change racket into serving position and serving mode
+  rightPlayer.racket.degree = rightPlayer.racket.serveStartDegree
+  rightPlayer.racket.isServing = true
+
+  // change birdie into serving mode
+  birdie.isServing = true
+}
+
+function randomPlayerServe() {
+  // randomly pick left or right player to serve
+  if (Math.random() > 0.5) {
+    gameState = 'Left Player Serving'
+    setUpLeftServe()
+  } else {
+    gameState = 'Right Player Serving'
+    setUpRightServe()
+  }
 }

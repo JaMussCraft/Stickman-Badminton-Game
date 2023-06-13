@@ -24,6 +24,8 @@ class Player {
       degree: {
         start: this.side === 'right' ? 50 : -50,
         end: this.side === 'right' ? -100 : 100,
+        serveStart: this.side === 'right' ? 120 : 245,
+        serveEnd: this.side === 'right' ? 275 : 90,
       },
     })
     this.xLeftBound = this.side === 'left' ? 0 : canvas.width * 0.5
@@ -77,6 +79,9 @@ class Racket {
     this.degree = degree.start
     this.startDegree = degree.start
     this.endDegree = degree.end
+    this.serveStartDegree = degree.serveStart
+    this.serveEndDegree = degree.serveEnd
+    this.isServing = false
 
     this.swingForth = false
     this.swingBack = false
@@ -99,19 +104,6 @@ class Racket {
     c.closePath()
     c.fillStyle = 'green'
     c.fill()
-
-    // c.save()
-    // c.translate(this.x + this.width / 2, this.y + this.height)
-
-    // // Rotate the canvas by degree
-    // const angle = (this.degree * Math.PI) / 180
-    // c.rotate(angle)
-
-    // c.fillStyle = 'green'
-    // c.translate(-this.width / 2, -this.height)
-    // c.fillRect(0, 0, this.width, this.height)
-
-    // c.restore()
   }
 
   update() {
@@ -138,38 +130,91 @@ class Racket {
     )
 
     // swinging animation
-    if (this.player.side === 'right') {
-      if (this.swingForth) {
-        if (this.degree + racketSwingSpeed > this.endDegree) this.degree -= racketSwingSpeed
-        else {
-          this.degree = this.endDegree
-          this.swingForth = false
-          this.swingBack = true
-        }
-      } else if (this.swingBack) {
-        if (this.degree + racketSwingSpeed < this.startDegree) {
-          this.degree += racketSwingSpeed
+
+    switch (this.player.side) {
+      case 'right':
+        if (this.isServing) {
+          // serving
+          if (this.swingForth) {
+            if (this.degree + racketSwingSpeed < this.serveEndDegree) {
+              this.degree += racketSwingSpeed
+            } else {
+              this.degree = this.serveEndDegree
+              this.swingForth = false
+              this.swingBack = true
+            }
+          } else if (this.swingBack) {
+            if (this.degree + racketSwingSpeed > this.serveStartDegree)
+              this.degree -= racketSwingSpeed
+            else {
+              this.degree = this.startDegree
+              this.swingBack = false
+              this.isServing = false
+            }
+          }
         } else {
-          this.degree = this.startDegree
-          this.swingBack = false
+          // not serving, normal clearing and smashing
+          if (this.swingForth) {
+            if (this.degree + racketSwingSpeed > this.endDegree) this.degree -= racketSwingSpeed
+            else {
+              this.degree = this.endDegree
+              this.swingForth = false
+              this.swingBack = true
+            }
+          } else if (this.swingBack) {
+            if (this.degree + racketSwingSpeed < this.startDegree) {
+              this.degree += racketSwingSpeed
+            } else {
+              this.degree = this.startDegree
+              this.swingBack = false
+            }
+          }
         }
-      }
-    } else {
-      if (this.swingForth) {
-        if (this.degree + racketSwingSpeed < this.endDegree) this.degree += racketSwingSpeed
-        else {
-          this.degree = this.endDegree
-          this.swingForth = false
-          this.swingBack = true
-        }
-      } else if (this.swingBack) {
-        if (this.degree - racketSwingSpeed > this.startDegree) {
-          this.degree -= racketSwingSpeed
+
+        break
+
+      case 'left':
+        if (this.isServing) {
+          if (this.swingForth) {
+            if (this.degree - racketSwingSpeed > this.serveEndDegree)
+              this.degree -= racketSwingSpeed
+            else {
+              this.degree = this.serveEndDegree
+              this.swingForth = false
+              this.swingBack = true
+            }
+          } else if (this.swingBack) {
+            if (this.degree + racketSwingSpeed < this.serveStartDegree) {
+              this.degree += racketSwingSpeed
+            } else {
+              this.degree = this.startDegree
+              this.swingBack = false
+              this.isServing = false
+            }
+          }
         } else {
-          this.degree = this.startDegree
-          this.swingBack = false
+          // normal hitting animation
+          if (this.swingForth) {
+            if (this.degree + racketSwingSpeed < this.endDegree) this.degree += racketSwingSpeed
+            else {
+              this.degree = this.endDegree
+              this.swingForth = false
+              this.swingBack = true
+            }
+          } else if (this.swingBack) {
+            if (this.degree - racketSwingSpeed > this.startDegree) {
+              this.degree -= racketSwingSpeed
+            } else {
+              this.degree = this.startDegree
+              this.swingBack = false
+            }
+          }
         }
-      }
+
+        break
+
+      default:
+        break
     }
   }
 }
@@ -184,6 +229,7 @@ class Birdie {
     this.degree = 0
     this.isServing = isServing
     this.bouncing = false
+    this.hittingNet = false
   }
 
   draw() {
@@ -212,10 +258,6 @@ class Birdie {
       this.bouncing = true
       this.veloY *= -bounceFriction
     }
-    // else {
-    //   this.bouncing = false
-    //   console.log('not bouncing')
-    // }
 
     // gravity
     if (maxY + this.veloY >= canvas.height) {
@@ -234,6 +276,12 @@ class Birdie {
     } else if (maxX + this.veloX >= canvas.width) {
       this.setCenterX(canvas.width - (maxX - this.centerX))
       this.veloX *= -1
+    }
+
+    // collision detection between birdie and net
+    if (maxY >= netTopY && maxX > netX && minX < netX) {
+      this.hittingNet = true
+      this.veloX = this.veloY = 0
     }
 
     // air friction
@@ -255,7 +303,6 @@ class Birdie {
         this.setDegree(degree - 90)
       }
     } else {
-      // console.log('veloX is 0')
       // veloX is 0
       if (this.veloY > 0 && !this.bouncing) {
         this.setDegree(180)
