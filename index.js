@@ -4,17 +4,17 @@ const c = canvas.getContext('2d')
 canvas.width = 800
 canvas.height = 500
 
-// gsap.to("#hello", { duration: 1, width: 200 })
-
 // Constants
 // Ensures consistent FPS for every monitor
 let msPrev = window.performance.now()
-const fps = 60
+const fps = 10
 const msPerFrame = 1000 / fps
 let frames = 0
 
 // Possible game states: 'Mid Game', 'Left Player Serving',
-// 'Right Player Serving', 'Start Screen', 'Right Player Won', 'Left Player Won'
+// 'Right Player Serving', 'Start Screen',
+// 'Right Player Won', 'Left Player Won',
+// 'Pause Between Rounds'
 let gameState = 'Start Screen'
 let lastWon = null
 let leftScore = 0
@@ -26,7 +26,7 @@ const gravity = 0.3
 const jumpSpeed = 8
 const playerSpeed = 10
 
-const racketSwingSpeed = 5
+const racketSwingSpeed = 15
 const racketStartDegree = 50
 const racketEndDegree = -100
 
@@ -55,7 +55,7 @@ const rightPlayer = new Player({
   y: 200,
   veloX: 0,
   veloY: 0,
-  imageSrc: null,
+  imageSrc: 'img/right-player/standing.png',
   side: 'right',
 })
 
@@ -64,22 +64,33 @@ const leftPlayer = new Player({
   y: 200,
   veloX: 0,
   veloY: 0,
-  imageSrc: null,
+  imageSrc: 'img/left-player/standing.png',
   side: 'left',
 })
 
 const birdie = new Birdie({
   vertices: [
     { x: 100, y: 100 },
-    { x: 110, y: 150 },
-    { x: 90, y: 150 },
+    { x: 120, y: 140 },
+    { x: 80, y: 140 },
   ],
   veloX: 0,
   veloY: 0,
   isServing: false,
+  imageSrc: 'img/birdie.png',
 })
 birdie.setCenterX(250)
 birdie.setCenterY(400)
+
+const net = new Net({
+  vertices: [
+    { x: canvas.width / 2 - 12.5, y: canvas.height - 100 },
+    { x: canvas.width / 2 + 12.5, y: canvas.height - 80 },
+    { x: canvas.width / 2 + 12.5, y: canvas.height },
+    { x: canvas.width / 2 - 12.5, y: canvas.height },
+  ],
+  imageSrc: 'img/net.png',
+})
 
 // html elements
 const startScreen = document.querySelector('#startScreen')
@@ -114,9 +125,10 @@ function animate() {
 
   if (msPassed < msPerFrame) return
 
-  console.log(gameState, leftPlayer.racket.isServing)
+  // birdie.setDegree(0)
 
-  c.clearRect(0, 0, canvas.width, canvas.height)
+  c.fillStyle = 'grey'
+  c.fillRect(0, 0, canvas.width, canvas.height)
 
   // update and draw rightPlayer
   rightPlayer.update()
@@ -132,9 +144,17 @@ function animate() {
   }
 
   // rightPlayer x movement
-  if (keys.left.pressed && lastKey.rightPlayer === 'left') {
+  if (
+    keys.left.pressed &&
+    lastKey.rightPlayer === 'left' &&
+    rightPlayer.x - playerSpeed >= rightPlayer.xLeftBound
+  ) {
     rightPlayer.x -= playerSpeed
-  } else if (keys.right.pressed && lastKey.rightPlayer === 'right') {
+  } else if (
+    keys.right.pressed &&
+    lastKey.rightPlayer === 'right' &&
+    rightPlayer.x + rightPlayer.width + playerSpeed <= rightPlayer.xRightBound
+  ) {
     rightPlayer.x += playerSpeed
   }
 
@@ -147,9 +167,17 @@ function animate() {
   }
 
   // leftPlayer x movement
-  if (keys.a.pressed && lastKey.leftPlayer === 'a') {
+  if (
+    keys.a.pressed &&
+    lastKey.leftPlayer === 'a' &&
+    leftPlayer.x - playerSpeed >= leftPlayer.xLeftBound
+  ) {
     leftPlayer.x -= playerSpeed
-  } else if (keys.d.pressed && lastKey.leftPlayer === 'd') {
+  } else if (
+    keys.d.pressed &&
+    lastKey.leftPlayer === 'd' &&
+    leftPlayer.x + leftPlayer.width + playerSpeed <= leftPlayer.xRightBound
+  ) {
     leftPlayer.x += playerSpeed
   }
 
@@ -160,14 +188,20 @@ function animate() {
   birdie.update()
   birdie.draw()
 
+  // update and draw net
+  net.update()
+  net.draw()
+
   // state machine
   if (gameState === 'Start Screen') {
     // nothing for now
   } else if (gameState === 'Mid Game') {
     // reset player boundaries
-    leftPlayer.xRightBound = rightPlayer.xLeftBound = canvas.width / 2
+    rightPlayer.xLeftBound = canvas.width * 0.5 + 100
+    leftPlayer.xRightBound = canvas.width * 0.5 - 100
 
     // collision detection betweem birdie and right player racket
+    console.log(rightPlayer.racket.swingForth)
     if (
       !rightPlayer.racket.hitting &&
       rightPlayer.racket.swingForth &&
@@ -209,6 +243,15 @@ function animate() {
       }
     }
 
+    // collision detection between birdie and net
+    if (checkPolygonsCollide(birdie.vertices, net.vertices)) {
+      // change birdie to hitting net mode
+      birdie.hittingNet = true
+
+      // stop birdie from flying anywhere
+      birdie.veloX = birdie.veloY = 0
+    }
+
     // end round when birdie hitting net
     if (birdie.hittingNet) {
       if (lastHit === 'left') {
@@ -218,7 +261,7 @@ function animate() {
         // winner keeps serving
         setTimeout(() => {
           gameState = 'Right Player Serving'
-          setUpLeftServe()
+          setUpRightServe()
         }, 500)
       } else {
         // left wins
@@ -230,6 +273,7 @@ function animate() {
           setUpLeftServe()
         }, 500)
       }
+      gameState = 'Pause Between Rounds'
       birdie.hittingNet = false
     }
 
@@ -273,6 +317,7 @@ function animate() {
       birdie.isServing = false
       // birdie.veloY = -birdieYSpeed
       // birdie.veloX = birdieXSpeed
+      console.log('switcht to mid game')
 
       // change game state
       gameState = 'Mid Game'
@@ -287,11 +332,11 @@ function animate() {
 
     // move birdie when player swings
     if (rightPlayer.racket.swingForth) {
-      console.log('RIGHT PLAYER SERVE!')
       birdie.isServing = false
       // birdie.veloY = -birdieYSpeed
       // birdie.veloX = -birdieXSpeed
 
+      console.log('asdfsdf')
       // change game state
       gameState = 'Mid Game'
     }
@@ -313,7 +358,6 @@ function animate() {
 
   // update game frame
   frames++
-  // console.log(frames)
 }
 
 animate()

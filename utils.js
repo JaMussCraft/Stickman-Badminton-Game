@@ -233,7 +233,7 @@ function setUpLeftServe() {
 }
 
 function setUpRightServe() {
-  // shrink left player right bound
+  // shrink right player left bound
   rightPlayer.xLeftBound = canvas.width * 3 / 4
 
   // change racket into serving position and serving mode

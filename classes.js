@@ -27,15 +27,18 @@ class Player {
         serveStart: this.side === 'right' ? 120 : 245,
         serveEnd: this.side === 'right' ? 275 : 90,
       },
+      imageSrc: 'img/blue-racket.png',
     })
-    this.xLeftBound = this.side === 'left' ? 0 : canvas.width * 0.5
-    this.xRightBound = this.side === 'left' ? canvas.width * 0.5 : canvas.width
+    this.xLeftBound = this.side === 'left' ? 0 : canvas.width * 0.5 + 100
+    this.xRightBound = this.side === 'left' ? canvas.width * 0.5 - 100 : canvas.width
   }
 
   draw() {
     // draw player
-    c.fillStyle = 'red'
-    c.fillRect(this.x, this.y, this.width, this.height)
+    // c.fillStyle = 'red'
+    // c.fillRect(this.x, this.y, this.width, this.height)
+
+    c.drawImage(this.image, this.x, this.y)
 
     // draw racket
     this.racket.draw()
@@ -68,7 +71,7 @@ class Player {
 }
 
 class Racket {
-  constructor({ vertices, player, offSetX, degree }) {
+  constructor({ vertices, player, offSetX, degree, imageSrc }) {
     this.player = player
 
     this.vertices = vertices
@@ -91,19 +94,45 @@ class Racket {
     this.centerY = getCenterY(this.vertices)
 
     // position at which the racket rotates
-    this.pivotX = this.player.x + this.player.width / 2
+    this.pivotX = this.player.x + this.player.width / 2 + this.offSetX
     this.pivotY = this.player.y + this.player.height / 5
+
+    this.image = new Image()
+    this.image.src = imageSrc
+    this.image.onload = () => {
+      this.pattern = c.createPattern(this.image, 'no-repeat')
+    }
   }
 
   draw() {
+  
     c.beginPath()
     c.moveTo(this.vertices[0].x, this.vertices[0].y)
     c.lineTo(this.vertices[1].x, this.vertices[1].y)
     c.lineTo(this.vertices[2].x, this.vertices[2].y)
     c.lineTo(this.vertices[3].x, this.vertices[3].y)
     c.closePath()
-    c.fillStyle = 'green'
+    c.fillStyle = 'orange'
     c.fill()
+
+
+    
+
+    
+    // c.save()
+    // c.translate(this.pivotX, this.pivotY)
+    
+    // // Rotate the canvas by degree
+    // const angle = (this.degree * Math.PI) / 180
+    // c.rotate(angle)
+    
+    // c.translate(-this.pivotX, -this.pivotY)
+    
+    // // 25 and 30 are the offsets to make the birdie png match the birdie triangle
+    // c.drawImage(this.image, this.vertices[0].x, this.vertices[0].y)
+    // // c.drawImage(this.image, this.pivotX - 5, this.pivotY - 108)
+
+    // c.restore()
   }
 
   update() {
@@ -112,7 +141,7 @@ class Racket {
     this.centerY = getCenterY(this.vertices)
 
     this.pivotX = this.player.x + this.player.width / 2 + this.offSetX
-    this.pivotY = this.player.y + this.player.height / 5
+    this.pivotY = this.player.y + this.player.height * 0.5
 
     // update this.vertices
     this.vertices = [
@@ -220,7 +249,7 @@ class Racket {
 }
 
 class Birdie {
-  constructor({ vertices, veloX, veloY, isServing }) {
+  constructor({ vertices, veloX, veloY, isServing, imageSrc }) {
     this.vertices = vertices
     this.centerX = getCenterX(this.vertices)
     this.centerY = getCenterY(this.vertices)
@@ -230,16 +259,34 @@ class Birdie {
     this.isServing = isServing
     this.bouncing = false
     this.hittingNet = false
+
+    this.image = new Image()
+    this.image.src = imageSrc
   }
 
   draw() {
-    c.beginPath()
-    c.moveTo(this.vertices[0].x, this.vertices[0].y)
-    c.lineTo(this.vertices[1].x, this.vertices[1].y)
-    c.lineTo(this.vertices[2].x, this.vertices[2].y)
-    c.closePath()
-    c.fillStyle = 'cyan'
-    c.fill()
+    // birdie triangle
+    // c.beginPath()
+    // c.moveTo(this.vertices[0].x, this.vertices[0].y)
+    // c.lineTo(this.vertices[1].x, this.vertices[1].y)
+    // c.lineTo(this.vertices[2].x, this.vertices[2].y)
+    // c.closePath()
+    // c.fillStyle = 'cyan'
+    // c.fill()
+
+    c.save()
+    c.translate(this.centerX, this.centerY)
+
+    // Rotate the canvas by degree
+    const angle = (this.degree * Math.PI) / 180
+    c.rotate(angle)
+
+    c.translate(-this.centerX, -this.centerY)
+
+    // 25 and 30 are the offsets to make the birdie png match the birdie triangle
+    c.drawImage(this.image, this.centerX - 25, this.centerY - 30)
+
+    c.restore()
   }
 
   update() {
@@ -278,11 +325,11 @@ class Birdie {
       this.veloX *= -1
     }
 
-    // collision detection between birdie and net
-    if (maxY >= netTopY && maxX > netX && minX < netX) {
-      this.hittingNet = true
-      this.veloX = this.veloY = 0
-    }
+    // // collision detection between birdie and net
+    // if (maxY >= netTopY && maxX > netX && minX < netX) {
+    //   this.hittingNet = true
+    //   this.veloX = this.veloY = 0
+    // }
 
     // air friction
     if (this.veloX != 0) this.veloX *= airFriction
@@ -352,4 +399,30 @@ class Birdie {
       this.vertices[i].y += distY
     }
   }
+}
+
+class Net {
+  constructor({ vertices, imageSrc }) {
+    this.vertices = vertices
+    this.image = new Image()
+    this.image.src = imageSrc
+    this.height = this.image.height
+    this.width = this.image.width
+  }
+
+  draw() {
+    // // draw net polygon
+    // c.beginPath()
+    // c.moveTo(this.vertices[0].x, this.vertices[0].y)
+    // c.lineTo(this.vertices[1].x, this.vertices[1].y)
+    // c.lineTo(this.vertices[2].x, this.vertices[2].y)
+    // c.lineTo(this.vertices[3].x, this.vertices[3].y)
+    // c.closePath()
+    // c.fillStyle = 'purple'
+    // c.fill()
+
+    c.drawImage(this.image, canvas.width / 2 - this.width / 2, canvas.height - this.height)
+  }
+
+  update() {}
 }
