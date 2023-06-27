@@ -7,7 +7,7 @@ canvas.height = 500
 // Constants
 // Ensures consistent FPS for every monitor
 let msPrev = window.performance.now()
-const fps = 10
+const fps = 60
 const msPerFrame = 1000 / fps
 let frames = 0
 
@@ -71,26 +71,30 @@ const leftPlayer = new Player({
 const birdie = new Birdie({
   vertices: [
     { x: 100, y: 100 },
-    { x: 120, y: 140 },
-    { x: 80, y: 140 },
+    { x: 110, y: 130 },
+    { x: 90, y: 130 },
   ],
   veloX: 0,
   veloY: 0,
   isServing: false,
   imageSrc: 'img/birdie.png',
+  scale: 0.65,
 })
 birdie.setCenterX(250)
 birdie.setCenterY(400)
 
 const net = new Net({
   vertices: [
-    { x: canvas.width / 2 - 12.5, y: canvas.height - 100 },
-    { x: canvas.width / 2 + 12.5, y: canvas.height - 80 },
-    { x: canvas.width / 2 + 12.5, y: canvas.height },
+    { x: canvas.width / 2 - 12.5, y: canvas.height - 114 },
+    { x: canvas.width / 2 + 9, y: canvas.height - 96 },
+    { x: canvas.width / 2 + 9, y: canvas.height },
     { x: canvas.width / 2 - 12.5, y: canvas.height },
   ],
   imageSrc: 'img/net.png',
 })
+
+const background = new Image()
+background.src = 'img/background.png'
 
 // html elements
 const startScreen = document.querySelector('#startScreen')
@@ -102,6 +106,9 @@ const startScreenText = document.querySelector('#startScreenText')
 
 const startButton = document.querySelector('#startButton')
 startButton.onclick = () => {
+  // play background music
+  backgroundMusic.play()
+
   // hide startScreen
   startScreen.classList.add('hidden')
 
@@ -115,6 +122,26 @@ startButton.onclick = () => {
   scoreDiv.classList.remove('hidden')
 }
 
+// audio
+const backgroundMusic = new Audio('audio/background.mp3')
+backgroundMusic.loop = true
+backgroundMusic.volume = 0.03
+
+const smashSound = new Audio('audio/smash.mp3')
+smashSound.volume = 0.5
+
+const clearSound = new Audio('audio/clear.mp3')
+clearSound.volume = 0.5
+
+const serveSound = new Audio('audio/serve.mp3')
+serveSound.volume = 0.5
+
+const suddenTurnSound = new Audio('audio/sudden-turn.mp3')
+suddenTurnSound.volume = 0.5
+
+const winningSound = new Audio('audio/winning.mp3')
+winningSound.volume = 0.5
+
 // Animation Loop
 let animationId
 function animate() {
@@ -125,10 +152,9 @@ function animate() {
 
   if (msPassed < msPerFrame) return
 
-  // birdie.setDegree(0)
+  console.log(leftPlayer.racket.isServing, rightPlayer.racket.isServing)
 
-  c.fillStyle = 'grey'
-  c.fillRect(0, 0, canvas.width, canvas.height)
+  c.drawImage(background, 0, 0)
 
   // update and draw rightPlayer
   rightPlayer.update()
@@ -149,17 +175,27 @@ function animate() {
     lastKey.rightPlayer === 'left' &&
     rightPlayer.x - playerSpeed >= rightPlayer.xLeftBound
   ) {
+    // move left
     rightPlayer.x -= playerSpeed
   } else if (
     keys.right.pressed &&
     lastKey.rightPlayer === 'right' &&
     rightPlayer.x + rightPlayer.width + playerSpeed <= rightPlayer.xRightBound
   ) {
+    // move right
     rightPlayer.x += playerSpeed
   }
 
+  // play sudden turn audio if changing x direction
+  if (
+    (keys.left.pressed && lastKey.rightPlayer !== 'left') ||
+    (keys.right.pressed && lastKey.rightPlayer !== 'right')
+  ) {
+    suddenTurnSound.play()
+  }
+
   // rightPlayer swing
-  if (keys.down.pressed && !rightPlayer.racket.swingBack) rightPlayer.racket.swingForth = true
+  if (gameState != 'Pause Between Rounds' && keys.down.pressed && !rightPlayer.racket.swingBack) rightPlayer.racket.swingForth = true
 
   // leftPlayer y movement
   if (keys.w.pressed && leftPlayer.veloY === 0 && gameState != 'Left Player Serving') {
@@ -181,8 +217,16 @@ function animate() {
     leftPlayer.x += playerSpeed
   }
 
+  // play sudden turn audio if changing x direction
+  if (
+    (keys.a.pressed && lastKey.leftPlayer !== 'a') ||
+    (keys.d.pressed && lastKey.leftPlayer !== 'd')
+  ) {
+    suddenTurnSound.play()
+  }
+
   // leftPlayer swing
-  if (keys.s.pressed && !leftPlayer.racket.swingBack) leftPlayer.racket.swingForth = true
+  if (gameState != 'Pause Between Rounds' && keys.s.pressed && !leftPlayer.racket.swingBack) leftPlayer.racket.swingForth = true
 
   // update and draw birdie
   birdie.update()
@@ -190,7 +234,8 @@ function animate() {
 
   // update and draw net
   net.update()
-  net.draw()
+  // net drawn with background
+  // net.draw()
 
   // state machine
   if (gameState === 'Start Screen') {
@@ -201,7 +246,6 @@ function animate() {
     leftPlayer.xRightBound = canvas.width * 0.5 - 100
 
     // collision detection betweem birdie and right player racket
-    console.log(rightPlayer.racket.swingForth)
     if (
       !rightPlayer.racket.hitting &&
       rightPlayer.racket.swingForth &&
@@ -214,9 +258,15 @@ function animate() {
       }, 1000)
 
       if (!rightPlayer.racket.isServing && rightPlayer.racket.degree < -20) {
+        // play smash sound
+        smashSound.play()
+
         birdie.veloY = birdieYSpeed
         birdie.veloX = -birdieXSpeed * 2 // faster for smashing
       } else {
+        // play clear sound
+        if (birdie.centerY < netTopY) clearSound.play()
+
         birdie.veloY = -birdieYSpeed
         birdie.veloX = -birdieXSpeed
       }
@@ -235,9 +285,15 @@ function animate() {
       }, 1000)
 
       if (!leftPlayer.racket.isServing && leftPlayer.racket.degree > 20) {
+        // play smash sound
+        smashSound.play()
+
         birdie.veloY = birdieYSpeed
         birdie.veloX = birdieXSpeed * 2 // faster for smashing
       } else {
+        // play clear sound
+        if (birdie.centerY < netTopY) clearSound.play()
+
         birdie.veloY = -birdieYSpeed
         birdie.veloX = birdieXSpeed
       }
@@ -260,7 +316,6 @@ function animate() {
 
         // winner keeps serving
         setTimeout(() => {
-          gameState = 'Right Player Serving'
           setUpRightServe()
         }, 500)
       } else {
@@ -269,7 +324,6 @@ function animate() {
 
         // winner keeps serving
         setTimeout(() => {
-          gameState = 'Left Player Serving'
           setUpLeftServe()
         }, 500)
       }
@@ -278,22 +332,25 @@ function animate() {
     }
 
     // when birdie hits the ground
-    if (getMaxY(birdie.vertices) + birdie.veloY === canvas.height) {
+    if (getMaxY(birdie.vertices) + birdie.veloY >= canvas.height - 35) {
       if (birdie.centerX < leftPlayer.xRightBound) {
         // right wins
         rightScore += 1
 
         // winner keeps serving
-        gameState = 'Right Player Serving'
-        setUpRightServe()
+        setTimeout(() => {
+          setUpRightServe()
+        }, 500)
       } else {
         // left wins
         leftScore += 1
 
         // winner keeps serving
-        gameState = 'Left Player Serving'
-        setUpLeftServe()
+        setTimeout(() => {
+          setUpLeftServe()
+        }, 500)
       }
+      gameState = 'Pause Between Rounds'
     }
 
     // end game when one player has enough points
@@ -307,17 +364,17 @@ function animate() {
   } else if (gameState === 'Left Player Serving') {
     // constantly repositioning birdie to the right serving position
     if (birdie.isServing) {
-      birdie.setCenterX(leftPlayer.x + 70)
-      birdie.setCenterY(leftPlayer.y + 50)
+      birdie.setCenterX(leftPlayer.x + 55)
+      birdie.setCenterY(leftPlayer.y + 40)
       birdie.setDegree(200)
     }
 
     // move birdie when player swings
     if (leftPlayer.racket.swingForth) {
       birdie.isServing = false
-      // birdie.veloY = -birdieYSpeed
-      // birdie.veloX = birdieXSpeed
-      console.log('switcht to mid game')
+
+      // play serve sound
+      serveSound.play()
 
       // change game state
       gameState = 'Mid Game'
@@ -325,27 +382,35 @@ function animate() {
   } else if (gameState === 'Right Player Serving') {
     // constantly repositioning birdie to the right serving position
     if (birdie.isServing) {
-      birdie.setCenterX(rightPlayer.x - 20)
-      birdie.setCenterY(rightPlayer.y + 50)
+      birdie.setCenterX(rightPlayer.x - 5)
+      birdie.setCenterY(rightPlayer.y + 40)
       birdie.setDegree(150)
     }
 
     // move birdie when player swings
     if (rightPlayer.racket.swingForth) {
       birdie.isServing = false
-      // birdie.veloY = -birdieYSpeed
-      // birdie.veloX = -birdieXSpeed
 
-      console.log('asdfsdf')
+      // play serve sound
+      serveSound.play()
+
       // change game state
       gameState = 'Mid Game'
     }
   } else if (gameState === 'Right Player Won') {
     startScreen.classList.remove('hidden')
     startScreenText.innerHTML = 'Left Player Won'
+
+    // stop background music and play winning sound
+    backgroundMusic.pause()
+    winningSound.play()
   } else if (gameState === 'Left Player Won') {
     startScreen.classList.remove('hidden')
     startScreenText.innerHTML = 'Right Player Won'
+
+    // stop background music and play winning sound
+    backgroundMusic.pause()
+    winningSound.play()
   }
 
   // update score

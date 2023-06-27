@@ -221,6 +221,9 @@ function getMinX(vertices) {
 }
 
 function setUpLeftServe() {
+  // change gameState to left player serving
+  gameState = 'Left Player Serving'
+
   // shrink left player right bound
   leftPlayer.xRightBound = canvas.width / 4
 
@@ -230,11 +233,17 @@ function setUpLeftServe() {
 
   // change birdie into serving mode
   birdie.isServing = true
+
+  // set birdie veloX and veloY to zero
+  birdie.veloX = birdie.veloY = 0
 }
 
 function setUpRightServe() {
+  // change gameState to right player serving
+  gameState = 'Right Player Serving'
+
   // shrink right player left bound
-  rightPlayer.xLeftBound = canvas.width * 3 / 4
+  rightPlayer.xLeftBound = (canvas.width * 3) / 4
 
   // change racket into serving position and serving mode
   rightPlayer.racket.degree = rightPlayer.racket.serveStartDegree
@@ -242,15 +251,16 @@ function setUpRightServe() {
 
   // change birdie into serving mode
   birdie.isServing = true
+
+  // set birdie veloX and veloY to zero
+  birdie.veloX = birdie.veloY = 0
 }
 
 function randomPlayerServe() {
   // randomly pick left or right player to serve
   if (Math.random() > 0.5) {
-    gameState = 'Left Player Serving'
     setUpLeftServe()
   } else {
-    gameState = 'Right Player Serving'
     setUpRightServe()
   }
 }

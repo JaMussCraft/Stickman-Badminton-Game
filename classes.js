@@ -29,8 +29,8 @@ class Player {
       },
       imageSrc: 'img/blue-racket.png',
     })
-    this.xLeftBound = this.side === 'left' ? 0 : canvas.width * 0.5 + 100
-    this.xRightBound = this.side === 'left' ? canvas.width * 0.5 - 100 : canvas.width
+    this.xLeftBound = this.side === 'left' ? 45 : canvas.width * 0.5 + 100
+    this.xRightBound = this.side === 'left' ? canvas.width * 0.5 - 100 : canvas.width - 45
   }
 
   draw() {
@@ -46,9 +46,9 @@ class Player {
 
   update() {
     // gravity
-    if (this.y + this.height + this.veloY >= canvas.height) {
+    if (this.y + this.height + this.veloY >= canvas.height - 35) {
       this.veloY = 0
-      this.y = canvas.height - this.height
+      this.y = canvas.height - 35 - this.height
     } else {
       this.veloY += gravity
     }
@@ -105,7 +105,6 @@ class Racket {
   }
 
   draw() {
-  
     c.beginPath()
     c.moveTo(this.vertices[0].x, this.vertices[0].y)
     c.lineTo(this.vertices[1].x, this.vertices[1].y)
@@ -115,19 +114,15 @@ class Racket {
     c.fillStyle = 'orange'
     c.fill()
 
-
-    
-
-    
     // c.save()
     // c.translate(this.pivotX, this.pivotY)
-    
+
     // // Rotate the canvas by degree
     // const angle = (this.degree * Math.PI) / 180
     // c.rotate(angle)
-    
+
     // c.translate(-this.pivotX, -this.pivotY)
-    
+
     // // 25 and 30 are the offsets to make the birdie png match the birdie triangle
     // c.drawImage(this.image, this.vertices[0].x, this.vertices[0].y)
     // // c.drawImage(this.image, this.pivotX - 5, this.pivotY - 108)
@@ -249,7 +244,7 @@ class Racket {
 }
 
 class Birdie {
-  constructor({ vertices, veloX, veloY, isServing, imageSrc }) {
+  constructor({ vertices, veloX, veloY, isServing, imageSrc, scale }) {
     this.vertices = vertices
     this.centerX = getCenterX(this.vertices)
     this.centerY = getCenterY(this.vertices)
@@ -262,10 +257,11 @@ class Birdie {
 
     this.image = new Image()
     this.image.src = imageSrc
+    this.scale = scale
   }
 
   draw() {
-    // birdie triangle
+    // // birdie triangle
     // c.beginPath()
     // c.moveTo(this.vertices[0].x, this.vertices[0].y)
     // c.lineTo(this.vertices[1].x, this.vertices[1].y)
@@ -273,6 +269,7 @@ class Birdie {
     // c.closePath()
     // c.fillStyle = 'cyan'
     // c.fill()
+
 
     c.save()
     c.translate(this.centerX, this.centerY)
@@ -284,7 +281,13 @@ class Birdie {
     c.translate(-this.centerX, -this.centerY)
 
     // 25 and 30 are the offsets to make the birdie png match the birdie triangle
-    c.drawImage(this.image, this.centerX - 25, this.centerY - 30)
+    c.drawImage(
+      this.image,
+      this.centerX - 15,
+      this.centerY - 20,
+      this.image.height * this.scale,
+      this.image.width * this.scale
+    )
 
     c.restore()
   }
@@ -306,10 +309,10 @@ class Birdie {
       this.veloY *= -bounceFriction
     }
 
-    // gravity
-    if (maxY + this.veloY >= canvas.height) {
+    // gravity and y boundaries
+    if (maxY + this.veloY >= canvas.height - 20) {
       this.veloY = 0
-      this.setCenterY(canvas.height - (maxY - this.centerY))
+      this.setCenterY(canvas.height - 20 - (maxY - this.centerY))
     } else {
       this.veloY += gravity
     }
@@ -317,11 +320,11 @@ class Birdie {
     // x bounds
     const minX = getMinX(this.vertices)
     const maxX = getMaxX(this.vertices)
-    if (minX + this.veloX <= 0) {
-      this.setCenterX(this.centerX - minX)
+    if (minX + this.veloX <= 45) {
+      // this.setCenterX(this.centerX - minX)
       this.veloX *= -1
-    } else if (maxX + this.veloX >= canvas.width) {
-      this.setCenterX(canvas.width - (maxX - this.centerX))
+    } else if (maxX + this.veloX >= canvas.width - 45) {
+      // this.setCenterX(canvas.width - (maxX - this.centerX))
       this.veloX *= -1
     }
 
@@ -411,17 +414,16 @@ class Net {
   }
 
   draw() {
-    // // draw net polygon
+    // draw net polygon
     // c.beginPath()
     // c.moveTo(this.vertices[0].x, this.vertices[0].y)
     // c.lineTo(this.vertices[1].x, this.vertices[1].y)
     // c.lineTo(this.vertices[2].x, this.vertices[2].y)
     // c.lineTo(this.vertices[3].x, this.vertices[3].y)
     // c.closePath()
-    // c.fillStyle = 'purple'
+    // c.fillStyle = 'rgba(218,112,214,0.5)'
     // c.fill()
-
-    c.drawImage(this.image, canvas.width / 2 - this.width / 2, canvas.height - this.height)
+    // c.drawImage(this.image, canvas.width / 2 - this.width / 2, canvas.height - this.height)
   }
 
   update() {}
