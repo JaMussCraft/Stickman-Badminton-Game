@@ -2,16 +2,31 @@ class Player {
   static width = 50
   static height = 100
 
-  constructor({ x, y, veloX, veloY, imageSrc, side }) {
+  constructor({
+    x,
+    y,
+    veloX,
+    veloY,
+    side,
+    curFrame,
+    framesElapsed,
+    framesHold,
+    scale,
+    offSet,
+    sprites,
+  }) {
     this.x = x
     this.y = y
     this.width = Player.width
     this.height = Player.height
     this.veloX = veloX
     this.veloY = veloY
-    this.image = new Image()
-    this.image.src = imageSrc
+    this.curFrame = curFrame
+    this.framesElapsed = framesElapsed
+    this.framesHold = framesHold
+    this.scale = scale
     this.side = side
+    this.offSet = offSet
     this.racket = new Racket({
       vertices: [
         { x: 400, y: 400 },
@@ -20,7 +35,7 @@ class Player {
         { x: 400, y: 475 },
       ],
       player: this,
-      offSetX: this.side === 'right' ? 0 : -20,
+      offSetX: this.side === 'right' ? -10 : -10,
       degree: {
         start: this.side === 'right' ? 50 : -50,
         end: this.side === 'right' ? -100 : 100,
@@ -31,14 +46,62 @@ class Player {
     })
     this.xLeftBound = this.side === 'left' ? 45 : canvas.width * 0.5 + 100
     this.xRightBound = this.side === 'left' ? canvas.width * 0.5 - 100 : canvas.width - 45
+    
+    this.sprites = sprites
+    this.startedServe = false
+    for (const i in this.sprites) {
+      this.sprites[i].image = new Image()
+      this.sprites[i].image.src = this.sprites[i].imageSrc
+    }
+    
+    this.image = this.sprites.standing.image
+    this.nFrames = this.sprites.standing.nFrames
+
   }
 
   draw() {
     // draw player
-    // c.fillStyle = 'red'
-    // c.fillRect(this.x, this.y, this.width, this.height)
+    c.fillStyle = 'red'
+    c.fillRect(this.x, this.y, this.width, this.height)
 
-    c.drawImage(this.image, this.x, this.y)
+    this.framesElapsed++
+    c.drawImage(
+      this.image,
+      this.curFrame * (this.image.width / this.nFrames),
+      0,
+      this.image.width / this.nFrames,
+      this.image.height,
+      this.x - this.offSet.x,
+      this.y - this.offSet.y,
+      (this.image.width / this.nFrames) * this.scale,
+      this.image.height * this.scale
+    )
+    // c.drawImage(
+    //   this.image,
+    //   this.curFrame * (this.image.width / this.nFrames),
+    //   0,
+    //   this.image.width / this.nFrames,
+    //   this.image.height,
+    //   this.position.x - this.offset.x,
+    //   this.position.y - this.offset.y,
+    //   (this.image.width / this.nFrames) * this.scale,
+    //   this.image.height * this.scale
+    // );
+
+    if (this.framesElapsed % this.framesHold === 0) {
+      if (this.curFrame < this.nFrames - 1) {
+        this.curFrame++
+      } else if (this.curFrame === this.nFrames - 1) {
+        this.curFrame = 0
+      }
+    }
+
+    // ensure frame looping
+    if (this.curFrame >= this.nFrames) {
+      this.curFrame = 0
+    }
+
+    // c.drawImage(this.image, this.x, this.y)
 
     // draw racket
     this.racket.draw()
@@ -76,7 +139,7 @@ class Racket {
 
     this.vertices = vertices
     this.width = 20
-    this.height = 100
+    this.height = 75
     this.offSetX = offSetX
 
     this.degree = degree.start
@@ -105,28 +168,24 @@ class Racket {
   }
 
   draw() {
-    c.beginPath()
-    c.moveTo(this.vertices[0].x, this.vertices[0].y)
-    c.lineTo(this.vertices[1].x, this.vertices[1].y)
-    c.lineTo(this.vertices[2].x, this.vertices[2].y)
-    c.lineTo(this.vertices[3].x, this.vertices[3].y)
-    c.closePath()
-    c.fillStyle = 'orange'
-    c.fill()
-
+    // c.beginPath()
+    // c.moveTo(this.vertices[0].x, this.vertices[0].y)
+    // c.lineTo(this.vertices[1].x, this.vertices[1].y)
+    // c.lineTo(this.vertices[2].x, this.vertices[2].y)
+    // c.lineTo(this.vertices[3].x, this.vertices[3].y)
+    // c.closePath()
+    // // set fill style to transparent orange
+    // c.fillStyle = 'rgba(255, 165, 0, 0.5)'
+    // c.fill()
     // c.save()
     // c.translate(this.pivotX, this.pivotY)
-
     // // Rotate the canvas by degree
     // const angle = (this.degree * Math.PI) / 180
     // c.rotate(angle)
-
     // c.translate(-this.pivotX, -this.pivotY)
-
     // // 25 and 30 are the offsets to make the birdie png match the birdie triangle
     // c.drawImage(this.image, this.vertices[0].x, this.vertices[0].y)
     // // c.drawImage(this.image, this.pivotX - 5, this.pivotY - 108)
-
     // c.restore()
   }
 
@@ -136,7 +195,7 @@ class Racket {
     this.centerY = getCenterY(this.vertices)
 
     this.pivotX = this.player.x + this.player.width / 2 + this.offSetX
-    this.pivotY = this.player.y + this.player.height * 0.5
+    this.pivotY = this.player.y + this.player.height * 0.35
 
     // update this.vertices
     this.vertices = [
@@ -166,6 +225,7 @@ class Racket {
               this.degree = this.serveEndDegree
               this.swingForth = false
               this.swingBack = true
+              this.player.startedServe = false
             }
           } else if (this.swingBack) {
             if (this.degree + racketSwingSpeed > this.serveStartDegree)
@@ -206,6 +266,7 @@ class Racket {
               this.degree = this.serveEndDegree
               this.swingForth = false
               this.swingBack = true
+              this.player.startedServe = false
             }
           } else if (this.swingBack) {
             if (this.degree + racketSwingSpeed < this.serveStartDegree) {
@@ -269,7 +330,6 @@ class Birdie {
     // c.closePath()
     // c.fillStyle = 'cyan'
     // c.fill()
-
 
     c.save()
     c.translate(this.centerX, this.centerY)

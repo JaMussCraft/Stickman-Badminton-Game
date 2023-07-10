@@ -26,7 +26,7 @@ const gravity = 0.3
 const jumpSpeed = 8
 const playerSpeed = 10
 
-const racketSwingSpeed = 15
+const racketSwingSpeed = 11
 const racketStartDegree = 50
 const racketEndDegree = -100
 
@@ -55,8 +55,34 @@ const rightPlayer = new Player({
   y: 200,
   veloX: 0,
   veloY: 0,
-  imageSrc: 'img/right-player/standing.png',
   side: 'right',
+  curFrame: 0,
+  framesElapsed: 0,
+  framesHold: 2,
+  scale: 1,
+  offSet: { x: 50, y: 35 },
+  sprites: {
+    standing: {
+      imageSrc: 'img/right-player/standing.png',
+      nFrames: 1,
+    },
+    swing: {
+      imageSrc: 'img/right-player/swing.png',
+      nFrames: 15,
+    },
+    forward: {
+      imageSrc: 'img/right-player/forward.png',
+      nFrames: 8,
+    },
+    backward: {
+      imageSrc: 'img/right-player/backward.png',
+      nFrames: 8,
+    },
+    serving: {
+      imageSrc: 'img/right-player/serving.png',
+      nFrames: 8,
+    },
+  },
 })
 
 const leftPlayer = new Player({
@@ -64,8 +90,34 @@ const leftPlayer = new Player({
   y: 200,
   veloX: 0,
   veloY: 0,
-  imageSrc: 'img/left-player/standing.png',
   side: 'left',
+  curFrame: 0,
+  framesElapsed: 0,
+  framesHold: 2,
+  scale: 1,
+  offSet: { x: 50, y: 35 },
+  sprites: {
+    standing: {
+      imageSrc: 'img/left-player/standing.png',
+      nFrames: 1,
+    },
+    swing: {
+      imageSrc: 'img/left-player/swing.png',
+      nFrames: 15,
+    },
+    forward: {
+      imageSrc: 'img/left-player/forward.png',
+      nFrames: 8,
+    },
+    backward: {
+      imageSrc: 'img/left-player/backward.png',
+      nFrames: 8,
+    },
+    serving: {
+      imageSrc: 'img/left-player/serving.png',
+      nFrames: 8,
+    },
+  },
 })
 
 const birdie = new Birdie({
@@ -152,7 +204,7 @@ function animate() {
 
   if (msPassed < msPerFrame) return
 
-  console.log(leftPlayer.racket.isServing, rightPlayer.racket.isServing)
+  // console.log(leftPlayer.racket.isServing, rightPlayer.racket.isServing)
 
   c.drawImage(background, 0, 0)
 
@@ -165,7 +217,7 @@ function animate() {
   leftPlayer.draw()
 
   // rightPlayer y movement
-  if (keys.up.pressed && rightPlayer.veloY === 0 && gameState != 'Right Player Serving') {
+  if (keys.up.pressed && rightPlayer.veloY === 0 && gameState != 'Right Player Serving' && !rightPlayer.startedServe) {
     rightPlayer.veloY = -jumpSpeed
   }
 
@@ -195,7 +247,45 @@ function animate() {
   }
 
   // rightPlayer swing
-  if (gameState != 'Pause Between Rounds' && keys.down.pressed && !rightPlayer.racket.swingBack) rightPlayer.racket.swingForth = true
+  if (gameState != 'Pause Between Rounds' && keys.down.pressed && !rightPlayer.racket.swingBack)
+    rightPlayer.racket.swingForth = true
+
+  // rightPlayer animations
+  if (
+    !rightPlayer.racket.isServing &&
+    (rightPlayer.racket.swingForth || rightPlayer.racket.swingBack)
+  ) {
+    // swing animation
+    if (rightPlayer.image !== rightPlayer.sprites.swing.image) rightPlayer.curFrame = 0
+
+    rightPlayer.image = rightPlayer.sprites.swing.image
+    rightPlayer.nFrames = rightPlayer.sprites.swing.nFrames
+  } else if (!rightPlayer.startedServe && keys.right.pressed && rightPlayer.veloY === 0) {
+    // walk backward animation
+    if (rightPlayer.image !== rightPlayer.sprites.backward.image) rightPlayer.curFrame = 0
+
+    rightPlayer.image = rightPlayer.sprites.backward.image
+    rightPlayer.nFrames = rightPlayer.sprites.backward.nFrames
+  } else if (!rightPlayer.startedServe && keys.left.pressed && rightPlayer.veloY === 0) {
+    // walk forward animation
+    if (rightPlayer.image !== rightPlayer.sprites.forward.image) rightPlayer.curFrame = 0
+
+    rightPlayer.image = rightPlayer.sprites.forward.image
+    rightPlayer.nFrames = rightPlayer.sprites.forward.nFrames
+  } else if (rightPlayer.startedServe) {
+    console.log('serving')
+    // serving animation
+    if (rightPlayer.image !== rightPlayer.sprites.serving.image) rightPlayer.curFrame = 0
+    rightPlayer.image = rightPlayer.sprites.serving.image
+    rightPlayer.nFrames = rightPlayer.sprites.serving.nFrames
+  } else {
+    // standing animation
+    rightPlayer.curFrame = 0
+    rightPlayer.image = rightPlayer.sprites.standing.image
+    rightPlayer.nFrames = rightPlayer.sprites.standing.nFrames
+  }
+
+  console.log(rightPlayer.startedServe)
 
   // leftPlayer y movement
   if (keys.w.pressed && leftPlayer.veloY === 0 && gameState != 'Left Player Serving') {
@@ -226,7 +316,42 @@ function animate() {
   }
 
   // leftPlayer swing
-  if (gameState != 'Pause Between Rounds' && keys.s.pressed && !leftPlayer.racket.swingBack) leftPlayer.racket.swingForth = true
+  if (gameState != 'Pause Between Rounds' && keys.s.pressed && !leftPlayer.racket.swingBack)
+    leftPlayer.racket.swingForth = true
+
+  // leftPlayer animations
+  if (!leftPlayer.racket.isServing && (leftPlayer.racket.swingForth || leftPlayer.racket.swingBack)) {
+    // swing animation
+    if (leftPlayer.image !== leftPlayer.sprites.swing.image) {
+      leftPlayer.curFrame = 0
+    }
+    leftPlayer.image = leftPlayer.sprites.swing.image
+    leftPlayer.nFrames = leftPlayer.sprites.swing.nFrames
+  } else if (!leftPlayer.startedServe && keys.a.pressed && leftPlayer.veloY === 0) {
+    // walk backward animation
+    if (leftPlayer.image !== leftPlayer.sprites.backward.image) {
+      leftPlayer.curFrame = 0
+    }
+    leftPlayer.image = leftPlayer.sprites.backward.image
+    leftPlayer.nFrames = leftPlayer.sprites.backward.nFrames
+  } else if (!leftPlayer.startedServe && keys.d.pressed && leftPlayer.veloY === 0) {
+    // walk forward animation
+    if (leftPlayer.image !== leftPlayer.sprites.forward.image) {
+      leftPlayer.curFrame = 0
+    }
+    leftPlayer.image = leftPlayer.sprites.forward.image
+    leftPlayer.nFrames = leftPlayer.sprites.forward.nFrames
+  } else if (leftPlayer.startedServe) {
+    // serving animation
+    if (leftPlayer.image !== leftPlayer.sprites.serving.image) leftPlayer.curFrame = 0
+    leftPlayer.image = leftPlayer.sprites.serving.image
+    leftPlayer.nFrames = leftPlayer.sprites.serving.nFrames
+  } else {
+    // standing animation
+    leftPlayer.curFrame = 0
+    leftPlayer.image = leftPlayer.sprites.standing.image
+    leftPlayer.nFrames = leftPlayer.sprites.standing.nFrames
+  }
 
   // update and draw birdie
   birdie.update()
@@ -373,6 +498,8 @@ function animate() {
     if (leftPlayer.racket.swingForth) {
       birdie.isServing = false
 
+      leftPlayer.startedServe = true
+
       // play serve sound
       serveSound.play()
 
@@ -390,6 +517,8 @@ function animate() {
     // move birdie when player swings
     if (rightPlayer.racket.swingForth) {
       birdie.isServing = false
+
+      rightPlayer.startedServe = true
 
       // play serve sound
       serveSound.play()
